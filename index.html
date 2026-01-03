@@ -26,6 +26,57 @@
             margin: 0 auto;
         }
         
+        /* TELA DE LOGIN */
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 50px auto;
+            max-width: 400px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        
+        .login-container h2 {
+            color: #3a5fcd;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        
+        .login-form input {
+            margin-bottom: 20px;
+        }
+        
+        .login-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .login-actions button {
+            flex: 1;
+        }
+        
+        .login-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
         /* CABEÇALHO */
         header {
             background: white;
@@ -34,6 +85,39 @@
             margin-bottom: 25px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #3a5fcd;
+        }
+        
+        .logout-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
         }
         
         h1 {
@@ -307,6 +391,11 @@
             .controls {
                 flex-direction: column;
             }
+            
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
         }
         
         /* ANIMAÇÕES */
@@ -318,17 +407,71 @@
         .fade-in {
             animation: fadeIn 0.5s ease-out;
         }
+        
+        /* ESTADOS DE VISIBILIDADE */
+        .hidden {
+            display: none !important;
+        }
+        
+        .visible {
+            display: block !important;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
+    <!-- TELA DE LOGIN -->
+    <div id="loginScreen" class="login-container fade-in">
+        <h2><i class="fas fa-user-circle"></i> Acesso ao Sistema</h2>
+        <p style="color: #666; margin-bottom: 25px;">Digite seu usuário e senha para acessar seus dados</p>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username"><i class="fas fa-user"></i> Usuário</label>
+                <input type="text" id="username" placeholder="Digite seu nome de usuário" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock"></i> Senha</label>
+                <input type="password" id="password" placeholder="Digite sua senha" required>
+            </div>
+            
+            <div id="loginMessage" class="login-message"></div>
+            
+            <div class="login-actions">
+                <button type="submit" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i> Entrar
+                </button>
+                <button type="button" id="registerBtn">
+                    <i class="fas fa-user-plus"></i> Registrar
+                </button>
+            </div>
+        </form>
+        
+        <div style="margin-top: 20px; font-size: 14px; color: #888;">
+            <p><i class="fas fa-info-circle"></i> Dica: Use qualquer nome de usuário e senha para criar uma conta nova.</p>
+        </div>
+    </div>
+    
+    <!-- APLICAÇÃO PRINCIPAL (oculta até o login) -->
+    <div id="appContainer" class="container hidden">
         <header>
-            <h1><i class="fas fa-car"></i> Controle Financeiro - Motorista Uber</h1>
-            <p class="subtitle">Organize seus ganhos e despesas | Acesse de qualquer dispositivo</p>
-            <p style="color: #3a5fcd; font-weight: 600; margin-top: 10px;">
-                <i class="fas fa-mobile-alt"></i> Funciona offline • <i class="fas fa-sync-alt"></i> Salva automaticamente
-            </p>
+            <div>
+                <h1><i class="fas fa-car"></i> Controle Financeiro - Motorista Uber</h1>
+                <p class="subtitle">Organize seus ganhos e despesas | Acesse de qualquer dispositivo</p>
+                <p style="color: #3a5fcd; font-weight: 600; margin-top: 10px;">
+                    <i class="fas fa-mobile-alt"></i> Funciona offline • <i class="fas fa-sync-alt"></i> Salva automaticamente
+                </p>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-name" id="currentUserName">
+                    <i class="fas fa-user"></i> Usuário
+                </div>
+                <button type="button" class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
         </header>
         
         <div class="card fade-in">
@@ -422,39 +565,197 @@
     </div>
 
     <script>
+        // Sistema de Login e Usuários
+        let usuarios = {};
+        let usuarioAtual = null;
+        let transacoes = {};
+        
         // Configuração inicial
         document.addEventListener('DOMContentLoaded', function() {
-            // Definir data atual
-            document.getElementById('date').valueAsDate = new Date();
+            // Carregar usuários do localStorage
+            carregarUsuarios();
             
-            // Carregar transações salvas
-            carregarTransacoes();
+            // Verificar se há usuário logado
+            const usuarioSalvo = localStorage.getItem('usuarioAtual');
+            if (usuarioSalvo) {
+                usuarioAtual = usuarioSalvo;
+                iniciarApp();
+            }
             
-            // Configurar salvamento automático
-            configurarAutoSave();
+            // Configurar formulário de login
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                fazerLogin();
+            });
+            
+            // Configurar botão de registro
+            document.getElementById('registerBtn').addEventListener('click', function() {
+                registrarUsuario();
+            });
         });
         
-        // Array para armazenar transações
-        let transacoes = [];
-        
-        // Carregar transações do localStorage
-        function carregarTransacoes() {
-            const salvo = localStorage.getItem('uberTransacoes');
-            if (salvo) {
-                transacoes = JSON.parse(salvo);
-                atualizarInterface();
+        // Carregar usuários do localStorage
+        function carregarUsuarios() {
+            const usuariosSalvos = localStorage.getItem('usuariosUber');
+            if (usuariosSalvos) {
+                usuarios = JSON.parse(usuariosSalvos);
             } else {
-                // Adicionar exemplos na primeira vez
-                adicionarExemplos();
+                // Criar usuário admin padrão
+                usuarios = {
+                    'admin': {
+                        senha: 'admin123',
+                        nome: 'Administrador',
+                        criadoEm: new Date().toISOString()
+                    }
+                };
+                salvarUsuarios();
+            }
+            
+            // Carregar transações de cada usuário
+            const transacoesSalvas = localStorage.getItem('transacoesUber');
+            if (transacoesSalvas) {
+                transacoes = JSON.parse(transacoesSalvas);
             }
         }
         
-        // Adicionar transações de exemplo
+        // Salvar usuários no localStorage
+        function salvarUsuarios() {
+            localStorage.setItem('usuariosUber', JSON.stringify(usuarios));
+        }
+        
+        // Salvar transações no localStorage
+        function salvarTransacoes() {
+            if (usuarioAtual) {
+                localStorage.setItem('transacoesUber', JSON.stringify(transacoes));
+            }
+        }
+        
+        // Fazer login
+        function fazerLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginMessage = document.getElementById('loginMessage');
+            
+            if (!username || !password) {
+                mostrarMensagemLogin('Por favor, preencha todos os campos.', 'error');
+                return;
+            }
+            
+            // Verificar se usuário existe
+            if (usuarios[username]) {
+                // Verificar senha
+                if (usuarios[username].senha === password) {
+                    usuarioAtual = username;
+                    localStorage.setItem('usuarioAtual', usuarioAtual);
+                    iniciarApp();
+                } else {
+                    mostrarMensagemLogin('Senha incorreta. Tente novamente.', 'error');
+                }
+            } else {
+                mostrarMensagemLogin('Usuário não encontrado. Clique em "Registrar" para criar uma conta.', 'error');
+            }
+        }
+        
+        // Registrar novo usuário
+        function registrarUsuario() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginMessage = document.getElementById('loginMessage');
+            
+            if (!username || !password) {
+                mostrarMensagemLogin('Por favor, preencha todos os campos.', 'error');
+                return;
+            }
+            
+            if (username.length < 3) {
+                mostrarMensagemLogin('O nome de usuário deve ter pelo menos 3 caracteres.', 'error');
+                return;
+            }
+            
+            if (password.length < 4) {
+                mostrarMensagemLogin('A senha deve ter pelo menos 4 caracteres.', 'error');
+                return;
+            }
+            
+            // Verificar se usuário já existe
+            if (usuarios[username]) {
+                mostrarMensagemLogin('Este nome de usuário já está em uso. Escolha outro.', 'error');
+                return;
+            }
+            
+            // Criar novo usuário
+            usuarios[username] = {
+                senha: password,
+                nome: username,
+                criadoEm: new Date().toISOString()
+            };
+            
+            // Inicializar transações vazias para o novo usuário
+            if (!transacoes[username]) {
+                transacoes[username] = [];
+            }
+            
+            salvarUsuarios();
+            salvarTransacoes();
+            
+            // Fazer login automaticamente
+            usuarioAtual = username;
+            localStorage.setItem('usuarioAtual', usuarioAtual);
+            mostrarMensagemLogin('Conta criada com sucesso! Entrando...', 'success');
+            
+            setTimeout(() => {
+                iniciarApp();
+            }, 1000);
+        }
+        
+        // Mostrar mensagem na tela de login
+        function mostrarMensagemLogin(texto, tipo) {
+            const loginMessage = document.getElementById('loginMessage');
+            loginMessage.textContent = texto;
+            loginMessage.className = 'login-message ' + tipo;
+            loginMessage.style.display = 'block';
+        }
+        
+        // Iniciar aplicação após login
+        function iniciarApp() {
+            // Esconder tela de login e mostrar aplicação
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            
+            // Atualizar nome do usuário
+            document.getElementById('currentUserName').innerHTML = `<i class="fas fa-user"></i> ${usuarioAtual}`;
+            
+            // Definir data atual no formulário
+            document.getElementById('date').valueAsDate = new Date();
+            
+            // Carregar transações do usuário atual
+            carregarTransacoesUsuario();
+            
+            // Configurar salvamento automático
+            configurarAutoSave();
+        }
+        
+        // Carregar transações do usuário atual
+        function carregarTransacoesUsuario() {
+            if (usuarioAtual) {
+                if (transacoes[usuarioAtual] && transacoes[usuarioAtual].length > 0) {
+                    transacoes[usuarioAtual] = transacoes[usuarioAtual];
+                } else {
+                    // Adicionar exemplos para novo usuário
+                    adicionarExemplos();
+                }
+                atualizarInterface();
+            }
+        }
+        
+        // Adicionar transações de exemplo para novo usuário
         function adicionarExemplos() {
+            if (!usuarioAtual) return;
+            
             const hoje = new Date().toISOString().split('T')[0];
             const ontem = new Date(Date.now() - 86400000).toISOString().split('T')[0];
             
-            transacoes = [
+            transacoes[usuarioAtual] = [
                 {
                     id: Date.now() + 1,
                     tipo: 'entrada',
@@ -493,20 +794,19 @@
             atualizarInterface();
         }
         
-        // Salvar transações no localStorage
-        function salvarTransacoes() {
-            localStorage.setItem('uberTransacoes', JSON.stringify(transacoes));
-        }
-        
         // Configurar salvamento automático
         function configurarAutoSave() {
-            // Salvar a cada alteração
             setInterval(salvarTransacoes, 5000); // A cada 5 segundos
         }
         
-        // Manipular envio do formulário
+        // Manipular envio do formulário de transação
         document.getElementById('transactionForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            if (!usuarioAtual) {
+                mostrarMensagem('Você precisa estar logado para adicionar transações.', 'erro');
+                return;
+            }
             
             // Coletar dados do formulário
             const tipo = document.getElementById('type').value;
@@ -537,8 +837,12 @@
                 timestamp: new Date().toISOString()
             };
             
-            // Adicionar à lista
-            transacoes.unshift(transacao); // Adiciona no início
+            // Adicionar à lista do usuário atual
+            if (!transacoes[usuarioAtual]) {
+                transacoes[usuarioAtual] = [];
+            }
+            
+            transacoes[usuarioAtual].unshift(transacao);
             
             // Salvar e atualizar
             salvarTransacoes();
@@ -554,11 +858,13 @@
         
         // Atualizar interface
         function atualizarInterface() {
+            if (!usuarioAtual || !transacoes[usuarioAtual]) return;
+            
             // Calcular totais
             let totalEntradas = 0;
             let totalSaidas = 0;
             
-            transacoes.forEach(transacao => {
+            transacoes[usuarioAtual].forEach(transacao => {
                 if (transacao.tipo === 'entrada') {
                     totalEntradas += transacao.valor;
                 } else {
@@ -590,7 +896,7 @@
         function atualizarListaTransacoes() {
             const transactionsList = document.getElementById('transactionsList');
             
-            if (transacoes.length === 0) {
+            if (!usuarioAtual || !transacoes[usuarioAtual] || transacoes[usuarioAtual].length === 0) {
                 transactionsList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-receipt"></i>
@@ -602,12 +908,12 @@
             }
             
             // Ordenar transações por data (mais recente primeiro)
-            transacoes.sort((a, b) => new Date(b.data) - new Date(a.data));
+            transacoes[usuarioAtual].sort((a, b) => new Date(b.data) - new Date(a.data));
             
             // Gerar HTML para lista de transações
             let transactionsHTML = '';
             
-            transacoes.forEach(transacao => {
+            transacoes[usuarioAtual].forEach(transacao => {
                 const dataFormatada = formatarData(transacao.data);
                 const valorFormatado = formatarMoeda(transacao.valor);
                 
@@ -658,25 +964,28 @@
         
         // Excluir transação
         function excluirTransacao(id) {
+            if (!usuarioAtual) return;
+            
             if (confirm('Tem certeza que deseja excluir esta transação?')) {
-                transacoes = transacoes.filter(transacao => transacao.id !== id);
+                transacoes[usuarioAtual] = transacoes[usuarioAtual].filter(transacao => transacao.id !== id);
                 salvarTransacoes();
                 atualizarInterface();
                 mostrarMensagem('Transação excluída com sucesso!', 'sucesso');
             }
         }
         
-        // Exportar dados
+        // Exportar dados do usuário atual
         function exportarDados() {
-            if (transacoes.length === 0) {
+            if (!usuarioAtual || !transacoes[usuarioAtual] || transacoes[usuarioAtual].length === 0) {
                 mostrarMensagem('Não há dados para exportar.', 'erro');
                 return;
             }
             
             const dados = {
-                transacoes: transacoes,
+                usuario: usuarioAtual,
+                transacoes: transacoes[usuarioAtual],
                 exportadoEm: new Date().toISOString(),
-                totalTransacoes: transacoes.length
+                totalTransacoes: transacoes[usuarioAtual].length
             };
             
             const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
@@ -684,7 +993,7 @@
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = `uber-controle-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `uber-controle-${usuarioAtual}-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -692,13 +1001,31 @@
             mostrarMensagem('Dados exportados com sucesso!', 'sucesso');
         }
         
-        // Limpar todos os dados
+        // Limpar todos os dados do usuário atual
         function limparTudo() {
-            if (confirm('⚠️ ATENÇÃO: Esta ação irá apagar TODAS as transações. Tem certeza?')) {
-                transacoes = [];
-                localStorage.removeItem('uberTransacoes');
+            if (!usuarioAtual) return;
+            
+            if (confirm('⚠️ ATENÇÃO: Esta ação irá apagar TODAS as suas transações. Tem certeza?')) {
+                transacoes[usuarioAtual] = [];
+                salvarTransacoes();
                 atualizarInterface();
-                mostrarMensagem('Todos os dados foram removidos.', 'sucesso');
+                mostrarMensagem('Todos os seus dados foram removidos.', 'sucesso');
+            }
+        }
+        
+        // Fazer logout
+        function logout() {
+            if (confirm('Deseja realmente sair do sistema?')) {
+                usuarioAtual = null;
+                localStorage.removeItem('usuarioAtual');
+                
+                // Esconder aplicação e mostrar tela de login
+                document.getElementById('appContainer').classList.add('hidden');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                
+                // Limpar formulário de login
+                document.getElementById('loginForm').reset();
+                document.getElementById('loginMessage').style.display = 'none';
             }
         }
         
@@ -710,94 +1037,4 @@
         function formatarData(dataString) {
             const data = new Date(dataString);
             return data.toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
-        }
-        
-        function mostrarMensagem(texto, tipo) {
-            // Criar elemento de mensagem
-            const mensagem = document.createElement('div');
-            mensagem.textContent = texto;
-            mensagem.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 25px;
-                border-radius: 10px;
-                color: white;
-                font-weight: 600;
-                z-index: 1000;
-                animation: fadeIn 0.3s ease-out;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            `;
-            
-            if (tipo === 'sucesso') {
-                mensagem.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
-                mensagem.innerHTML = `<i class="fas fa-check-circle"></i> ${texto}`;
-            } else {
-                mensagem.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
-                mensagem.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${texto}`;
-            }
-            
-            document.body.appendChild(mensagem);
-            
-            // Remover após 3 segundos
-            setTimeout(() => {
-                mensagem.style.animation = 'fadeIn 0.3s ease-out reverse';
-                setTimeout(() => {
-                    if (mensagem.parentNode) {
-                        mensagem.parentNode.removeChild(mensagem);
-                    }
-                }, 300);
-            }, 3000);
-        }
-        
-        // Importar dados (funcionalidade extra)
-        function importarDados(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const dados = JSON.parse(e.target.result);
-                    if (dados.transacoes && Array.isArray(dados.transacoes)) {
-                        transacoes = dados.transacoes;
-                        salvarTransacoes();
-                        atualizarInterface();
-                        mostrarMensagem('Dados importados com sucesso!', 'sucesso');
-                    } else {
-                        mostrarMensagem('Arquivo inválido.', 'erro');
-                    }
-                } catch (error) {
-                    mostrarMensagem('Erro ao importar arquivo.', 'erro');
-                }
-            };
-            reader.readAsText(file);
-        }
-        
-        // Adicionar botão de importação oculto
-        const inputImport = document.createElement('input');
-        inputImport.type = 'file';
-        inputImport.accept = '.json';
-        inputImport.style.display = 'none';
-        inputImport.onchange = importarDados;
-        document.body.appendChild(inputImport);
-        
-        // Adicionar botão de importação na interface
-        setTimeout(() => {
-            const controls = document.querySelector('.controls');
-            const importBtn = document.createElement('button');
-            importBtn.innerHTML = '<i class="fas fa-upload"></i> Importar Dados';
-            importBtn.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
-            importBtn.onclick = () => inputImport.click();
-            controls.appendChild(importBtn);
-        }, 100);
-    </script>
-</body>
-</html>
+                day: '
