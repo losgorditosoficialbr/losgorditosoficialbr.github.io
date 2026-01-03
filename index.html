@@ -572,15 +572,8 @@
         
         // Configuração inicial
         document.addEventListener('DOMContentLoaded', function() {
-            // Carregar usuários do localStorage
-            carregarUsuarios();
-            
-            // Verificar se há usuário logado
-            const usuarioSalvo = localStorage.getItem('usuarioAtual');
-            if (usuarioSalvo) {
-                usuarioAtual = usuarioSalvo;
-                iniciarApp();
-            }
+            // Carregar dados salvos
+            carregarDados();
             
             // Configurar formulário de login
             document.getElementById('loginForm').addEventListener('submit', function(e) {
@@ -592,13 +585,25 @@
             document.getElementById('registerBtn').addEventListener('click', function() {
                 registrarUsuario();
             });
+            
+            // Configurar formulário de transação
+            document.getElementById('transactionForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                adicionarTransacao();
+            });
         });
         
-        // Carregar usuários do localStorage
-        function carregarUsuarios() {
-            const usuariosSalvos = localStorage.getItem('usuariosUber');
+        // Carregar dados do localStorage
+        function carregarDados() {
+            // Carregar usuários
+            const usuariosSalvos = localStorage.getItem('uberUsuarios');
             if (usuariosSalvos) {
-                usuarios = JSON.parse(usuariosSalvos);
+                try {
+                    usuarios = JSON.parse(usuariosSalvos);
+                } catch (e) {
+                    console.error('Erro ao carregar usuários:', e);
+                    usuarios = {};
+                }
             } else {
                 // Criar usuário admin padrão
                 usuarios = {
@@ -611,30 +616,41 @@
                 salvarUsuarios();
             }
             
-            // Carregar transações de cada usuário
-            const transacoesSalvas = localStorage.getItem('transacoesUber');
+            // Carregar transações
+            const transacoesSalvas = localStorage.getItem('uberTransacoes');
             if (transacoesSalvas) {
-                transacoes = JSON.parse(transacoesSalvas);
+                try {
+                    transacoes = JSON.parse(transacoesSalvas);
+                } catch (e) {
+                    console.error('Erro ao carregar transações:', e);
+                    transacoes = {};
+                }
+            } else {
+                transacoes = {};
+            }
+            
+            // Verificar se há usuário logado
+            const usuarioLogado = localStorage.getItem('uberUsuarioAtual');
+            if (usuarioLogado && usuarios[usuarioLogado]) {
+                usuarioAtual = usuarioLogado;
+                iniciarApp();
             }
         }
         
-        // Salvar usuários no localStorage
+        // Salvar usuários
         function salvarUsuarios() {
-            localStorage.setItem('usuariosUber', JSON.stringify(usuarios));
+            localStorage.setItem('uberUsuarios', JSON.stringify(usuarios));
         }
         
-        // Salvar transações no localStorage
+        // Salvar transações
         function salvarTransacoes() {
-            if (usuarioAtual) {
-                localStorage.setItem('transacoesUber', JSON.stringify(transacoes));
-            }
+            localStorage.setItem('uberTransacoes', JSON.stringify(transacoes));
         }
         
         // Fazer login
         function fazerLogin() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            const loginMessage = document.getElementById('loginMessage');
             
             if (!username || !password) {
                 mostrarMensagemLogin('Por favor, preencha todos os campos.', 'error');
@@ -646,10 +662,11 @@
                 // Verificar senha
                 if (usuarios[username].senha === password) {
                     usuarioAtual = username;
-                    localStorage.setItem('usuarioAtual', usuarioAtual);
-                    iniciarApp();
+                    localStorage.setItem('uberUsuarioAtual', usuarioAtual);
+                    mostrarMensagemLogin('Login realizado com sucesso!', 'success');
+                    setTimeout(iniciarApp, 500);
                 } else {
-                    mostrarMensagemLogin('Senha incorreta. Tente novamente.', 'error');
+                    mostrarMensagemLogin('Senha incorreta.', 'error');
                 }
             } else {
                 mostrarMensagemLogin('Usuário não encontrado. Clique em "Registrar" para criar uma conta.', 'error');
@@ -660,7 +677,6 @@
         function registrarUsuario() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            const loginMessage = document.getElementById('loginMessage');
             
             if (!username || !password) {
                 mostrarMensagemLogin('Por favor, preencha todos os campos.', 'error');
@@ -668,18 +684,18 @@
             }
             
             if (username.length < 3) {
-                mostrarMensagemLogin('O nome de usuário deve ter pelo menos 3 caracteres.', 'error');
+                mostrarMensagemLogin('Usuário deve ter pelo menos 3 caracteres.', 'error');
                 return;
             }
             
             if (password.length < 4) {
-                mostrarMensagemLogin('A senha deve ter pelo menos 4 caracteres.', 'error');
+                mostrarMensagemLogin('Senha deve ter pelo menos 4 caracteres.', 'error');
                 return;
             }
             
             // Verificar se usuário já existe
             if (usuarios[username]) {
-                mostrarMensagemLogin('Este nome de usuário já está em uso. Escolha outro.', 'error');
+                mostrarMensagemLogin('Usuário já existe. Escolha outro nome.', 'error');
                 return;
             }
             
@@ -695,12 +711,13 @@
                 transacoes[username] = [];
             }
             
+            // Salvar dados
             salvarUsuarios();
             salvarTransacoes();
             
             // Fazer login automaticamente
             usuarioAtual = username;
-            localStorage.setItem('usuarioAtual', usuarioAtual);
+            localStorage.setItem('uberUsuarioAtual', usuarioAtual);
             mostrarMensagemLogin('Conta criada com sucesso! Entrando...', 'success');
             
             setTimeout(() => {
@@ -716,46 +733,47 @@
             loginMessage.style.display = 'block';
         }
         
-        // Iniciar aplicação após login
+        // Iniciar aplicação
         function iniciarApp() {
-            // Esconder tela de login e mostrar aplicação
+            // Esconder tela de login
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('appContainer').classList.remove('hidden');
             
             // Atualizar nome do usuário
             document.getElementById('currentUserName').innerHTML = `<i class="fas fa-user"></i> ${usuarioAtual}`;
             
-            // Definir data atual no formulário
+            // Definir data atual
             document.getElementById('date').valueAsDate = new Date();
             
-            // Carregar transações do usuário atual
+            // Carregar transações do usuário
             carregarTransacoesUsuario();
             
             // Configurar salvamento automático
-            configurarAutoSave();
+            setInterval(salvarTransacoes, 5000);
         }
         
-        // Carregar transações do usuário atual
+        // Carregar transações do usuário
         function carregarTransacoesUsuario() {
-            if (usuarioAtual) {
-                if (transacoes[usuarioAtual] && transacoes[usuarioAtual].length > 0) {
-                    transacoes[usuarioAtual] = transacoes[usuarioAtual];
-                } else {
-                    // Adicionar exemplos para novo usuário
-                    adicionarExemplos();
-                }
-                atualizarInterface();
+            if (!usuarioAtual) return;
+            
+            // Verificar se o usuário tem transações
+            if (!transacoes[usuarioAtual]) {
+                transacoes[usuarioAtual] = [];
+                // Adicionar exemplos para novo usuário
+                adicionarExemplos();
             }
+            
+            atualizarInterface();
         }
         
-        // Adicionar transações de exemplo para novo usuário
+        // Adicionar transações de exemplo
         function adicionarExemplos() {
-            if (!usuarioAtual) return;
+            if (!usuarioAtual || !transacoes[usuarioAtual]) return;
             
             const hoje = new Date().toISOString().split('T')[0];
             const ontem = new Date(Date.now() - 86400000).toISOString().split('T')[0];
             
-            transacoes[usuarioAtual] = [
+            const exemplos = [
                 {
                     id: Date.now() + 1,
                     tipo: 'entrada',
@@ -790,54 +808,49 @@
                 }
             ];
             
-            salvarTransacoes();
-            atualizarInterface();
+            // Adicionar exemplos apenas se não houver transações
+            if (transacoes[usuarioAtual].length === 0) {
+                transacoes[usuarioAtual] = exemplos;
+                salvarTransacoes();
+            }
         }
         
-        // Configurar salvamento automático
-        function configurarAutoSave() {
-            setInterval(salvarTransacoes, 5000); // A cada 5 segundos
-        }
-        
-        // Manipular envio do formulário de transação
-        document.getElementById('transactionForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
+        // Adicionar transação
+        function adicionarTransacao() {
             if (!usuarioAtual) {
-                mostrarMensagem('Você precisa estar logado para adicionar transações.', 'erro');
+                mostrarMensagem('Você precisa estar logado!', 'erro');
                 return;
             }
             
-            // Coletar dados do formulário
+            // Coletar dados
             const tipo = document.getElementById('type').value;
             const categoria = document.getElementById('category').value;
             const descricao = document.getElementById('description').value;
             const valor = parseFloat(document.getElementById('amount').value);
             const data = document.getElementById('date').value;
             
-            // Validar dados
+            // Validar
             if (!tipo || !categoria || !valor || !data) {
-                mostrarMensagem('Por favor, preencha todos os campos obrigatórios.', 'erro');
+                mostrarMensagem('Preencha todos os campos obrigatórios.', 'erro');
                 return;
             }
             
             if (valor <= 0) {
-                mostrarMensagem('O valor deve ser maior que zero.', 'erro');
+                mostrarMensagem('Valor deve ser maior que zero.', 'erro');
                 return;
             }
             
-            // Criar objeto de transação
+            // Criar transação
             const transacao = {
                 id: Date.now(),
                 tipo: tipo,
                 categoria: categoria,
                 descricao: descricao,
                 valor: valor,
-                data: data,
-                timestamp: new Date().toISOString()
+                data: data
             };
             
-            // Adicionar à lista do usuário atual
+            // Adicionar à lista
             if (!transacoes[usuarioAtual]) {
                 transacoes[usuarioAtual] = [];
             }
@@ -852,19 +865,20 @@
             document.getElementById('transactionForm').reset();
             document.getElementById('date').valueAsDate = new Date();
             
-            // Feedback visual
-            mostrarMensagem('Transação adicionada com sucesso!', 'sucesso');
-        });
+            mostrarMensagem('Transação adicionada!', 'sucesso');
+        }
         
         // Atualizar interface
         function atualizarInterface() {
             if (!usuarioAtual || !transacoes[usuarioAtual]) return;
             
+            const userTransacoes = transacoes[usuarioAtual];
+            
             // Calcular totais
             let totalEntradas = 0;
             let totalSaidas = 0;
             
-            transacoes[usuarioAtual].forEach(transacao => {
+            userTransacoes.forEach(transacao => {
                 if (transacao.tipo === 'entrada') {
                     totalEntradas += transacao.valor;
                 } else {
@@ -874,21 +888,18 @@
             
             const saldoTotal = totalEntradas - totalSaidas;
             
-            // Atualizar totais no painel
+            // Atualizar totais
             document.getElementById('saldoTotal').textContent = formatarMoeda(saldoTotal);
             document.getElementById('totalEntradas').textContent = formatarMoeda(totalEntradas);
             document.getElementById('totalSaidas').textContent = formatarMoeda(totalSaidas);
             
-            // Atualizar cor do saldo
+            // Cor do saldo
             const saldoElement = document.getElementById('saldoTotal');
             saldoElement.className = 'resumo-valor';
-            if (saldoTotal > 0) {
-                saldoElement.classList.add('positivo');
-            } else if (saldoTotal < 0) {
-                saldoElement.classList.add('negativo');
-            }
+            if (saldoTotal > 0) saldoElement.classList.add('positivo');
+            else if (saldoTotal < 0) saldoElement.classList.add('negativo');
             
-            // Atualizar lista de transações
+            // Atualizar lista
             atualizarListaTransacoes();
         }
         
@@ -900,20 +911,22 @@
                 transactionsList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-receipt"></i>
-                        <p>Nenhuma transação registrada ainda.</p>
-                        <p>Adicione sua primeira transação usando o formulário acima.</p>
+                        <p>Nenhuma transação registrada.</p>
+                        <p>Adicione sua primeira transação.</p>
                     </div>
                 `;
                 return;
             }
             
-            // Ordenar transações por data (mais recente primeiro)
-            transacoes[usuarioAtual].sort((a, b) => new Date(b.data) - new Date(a.data));
+            // Ordenar por data (mais recente primeiro)
+            const transacoesOrdenadas = [...transacoes[usuarioAtual]].sort((a, b) => 
+                new Date(b.data) - new Date(a.data)
+            );
             
-            // Gerar HTML para lista de transações
+            // Gerar HTML
             let transactionsHTML = '';
             
-            transacoes[usuarioAtual].forEach(transacao => {
+            transacoesOrdenadas.forEach(transacao => {
                 const dataFormatada = formatarData(transacao.data);
                 const valorFormatado = formatarMoeda(transacao.valor);
                 
@@ -944,7 +957,7 @@
                                 <i class="${iconesCategorias[transacao.categoria] || 'fas fa-box'}"></i>
                                 ${nomesCategorias[transacao.categoria] || transacao.categoria}
                             </div>
-                            <div class="transaction-descricao">${transacao.descricao || 'Sem descrição adicional'}</div>
+                            <div class="transaction-descricao">${transacao.descricao || 'Sem descrição'}</div>
                             <div class="transaction-data">
                                 <i class="fas fa-calendar"></i> ${dataFormatada}
                             </div>
@@ -952,7 +965,7 @@
                         <div class="transaction-valor ${transacao.tipo === 'entrada' ? 'entrada' : 'saida'}">
                             ${transacao.tipo === 'entrada' ? '+' : '-'} ${valorFormatado}
                         </div>
-                        <button class="delete-btn" onclick="excluirTransacao(${transacao.id})" title="Excluir transação">
+                        <button class="delete-btn" onclick="excluirTransacao(${transacao.id})" title="Excluir">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -964,28 +977,27 @@
         
         // Excluir transação
         function excluirTransacao(id) {
-            if (!usuarioAtual) return;
+            if (!usuarioAtual || !transacoes[usuarioAtual]) return;
             
-            if (confirm('Tem certeza que deseja excluir esta transação?')) {
-                transacoes[usuarioAtual] = transacoes[usuarioAtual].filter(transacao => transacao.id !== id);
+            if (confirm('Excluir esta transação?')) {
+                transacoes[usuarioAtual] = transacoes[usuarioAtual].filter(t => t.id !== id);
                 salvarTransacoes();
                 atualizarInterface();
-                mostrarMensagem('Transação excluída com sucesso!', 'sucesso');
+                mostrarMensagem('Transação excluída!', 'sucesso');
             }
         }
         
-        // Exportar dados do usuário atual
+        // Exportar dados
         function exportarDados() {
             if (!usuarioAtual || !transacoes[usuarioAtual] || transacoes[usuarioAtual].length === 0) {
-                mostrarMensagem('Não há dados para exportar.', 'erro');
+                mostrarMensagem('Nenhum dado para exportar.', 'erro');
                 return;
             }
             
             const dados = {
                 usuario: usuarioAtual,
                 transacoes: transacoes[usuarioAtual],
-                exportadoEm: new Date().toISOString(),
-                totalTransacoes: transacoes[usuarioAtual].length
+                exportadoEm: new Date().toISOString()
             };
             
             const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
@@ -993,37 +1005,35 @@
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = `uber-controle-${usuarioAtual}-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `uber-financeiro-${usuarioAtual}-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             
-            mostrarMensagem('Dados exportados com sucesso!', 'sucesso');
+            mostrarMensagem('Dados exportados!', 'sucesso');
         }
         
-        // Limpar todos os dados do usuário atual
+        // Limpar tudo
         function limparTudo() {
             if (!usuarioAtual) return;
             
-            if (confirm('⚠️ ATENÇÃO: Esta ação irá apagar TODAS as suas transações. Tem certeza?')) {
+            if (confirm('⚠️ Apagar TODAS as suas transações?')) {
                 transacoes[usuarioAtual] = [];
                 salvarTransacoes();
                 atualizarInterface();
-                mostrarMensagem('Todos os seus dados foram removidos.', 'sucesso');
+                mostrarMensagem('Dados limpos!', 'sucesso');
             }
         }
         
-        // Fazer logout
+        // Logout
         function logout() {
-            if (confirm('Deseja realmente sair do sistema?')) {
+            if (confirm('Deseja sair?')) {
                 usuarioAtual = null;
-                localStorage.removeItem('usuarioAtual');
+                localStorage.removeItem('uberUsuarioAtual');
                 
-                // Esconder aplicação e mostrar tela de login
                 document.getElementById('appContainer').classList.add('hidden');
                 document.getElementById('loginScreen').classList.remove('hidden');
                 
-                // Limpar formulário de login
                 document.getElementById('loginForm').reset();
                 document.getElementById('loginMessage').style.display = 'none';
             }
@@ -1036,5 +1046,93 @@
         
         function formatarData(dataString) {
             const data = new Date(dataString);
-            return data.toLocaleDateString('pt-BR', {
-                day: '
+            return data.toLocaleDateString('pt-BR');
+        }
+        
+        function mostrarMensagem(texto, tipo) {
+            // Criar mensagem
+            const mensagem = document.createElement('div');
+            mensagem.textContent = texto;
+            mensagem.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 10px;
+                color: white;
+                font-weight: 600;
+                z-index: 1000;
+                animation: fadeIn 0.3s ease-out;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            `;
+            
+            if (tipo === 'sucesso') {
+                mensagem.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+                mensagem.innerHTML = `<i class="fas fa-check-circle"></i> ${texto}`;
+            } else {
+                mensagem.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                mensagem.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${texto}`;
+            }
+            
+            document.body.appendChild(mensagem);
+            
+            // Remover após 3 segundos
+            setTimeout(() => {
+                mensagem.style.animation = 'fadeIn 0.3s ease-out reverse';
+                setTimeout(() => {
+                    if (mensagem.parentNode) {
+                        mensagem.parentNode.removeChild(mensagem);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // Adicionar botão de importação
+        setTimeout(() => {
+            if (document.querySelector('.controls')) {
+                const inputImport = document.createElement('input');
+                inputImport.type = 'file';
+                inputImport.accept = '.json';
+                inputImport.style.display = 'none';
+                inputImport.onchange = importarDados;
+                document.body.appendChild(inputImport);
+                
+                const importBtn = document.createElement('button');
+                importBtn.innerHTML = '<i class="fas fa-upload"></i> Importar';
+                importBtn.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+                importBtn.onclick = () => inputImport.click();
+                document.querySelector('.controls').appendChild(importBtn);
+            }
+        }, 100);
+        
+        // Importar dados
+        function importarDados(event) {
+            const file = event.target.files[0];
+            if (!file || !usuarioAtual) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const dados = JSON.parse(e.target.result);
+                    if (dados.transacoes && Array.isArray(dados.transacoes)) {
+                        if (confirm('Importar transações? As atuais serão substituídas.')) {
+                            transacoes[usuarioAtual] = dados.transacoes;
+                            salvarTransacoes();
+                            atualizarInterface();
+                            mostrarMensagem('Dados importados!', 'sucesso');
+                        }
+                    } else {
+                        mostrarMensagem('Arquivo inválido.', 'erro');
+                    }
+                } catch (error) {
+                    mostrarMensagem('Erro ao importar.', 'erro');
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
